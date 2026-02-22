@@ -24,7 +24,7 @@
 //   });
 // }
 
-import { createServerClient, SupabaseClientOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 // Define the type for cookies we want to set
@@ -57,7 +57,6 @@ export async function createClient() {
             cookieStore.set(name, value, options)
           );
         } catch (err) {
-          // Ignore errors in Server Components
           console.error("Failed to set cookies:", err);
         }
       },
