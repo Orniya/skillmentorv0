@@ -1,6 +1,19 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
+// Define cookie type
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: {
+    path?: string;
+    maxAge?: number;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: "lax" | "strict" | "none";
+  };
+};
+
 export async function middleware(request: NextRequest) {
   const res = await updateSession(request);
   const path = request.nextUrl.pathname;
@@ -9,21 +22,24 @@ export async function middleware(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const { createServerClient } = await import("@supabase/ssr");
+
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            res.cookies.set(name, value)
+        setAll(cookiesToSet: CookieToSet[]) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options)
           );
         },
       },
     });
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
     if (!user) {
       const login = new URL("/auth/login", request.url);
       login.searchParams.set("redirect", path);
@@ -39,3 +55,44 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|auth/error).*)",
   ],
 };
+// import { type NextRequest } from "next/server";
+// import { updateSession } from "@/lib/supabase/proxy";
+
+// export async function middleware(request: NextRequest) {
+//   const res = await updateSession(request);
+//   const path = request.nextUrl.pathname;
+
+//   if (path.startsWith("/protected")) {
+//     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+//     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+//     const { createServerClient } = await import("@supabase/ssr");
+//     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+//       cookies: {
+//         getAll() {
+//           return request.cookies.getAll();
+//         },
+//         setAll(cookiesToSet) {
+//           cookiesToSet.forEach(({ name, value }) =>
+//             res.cookies.set(name, value)
+//           );
+//         },
+//       },
+//     });
+//     const {
+//       data: { user },
+//     } = await supabase.auth.getUser();
+//     if (!user) {
+//       const login = new URL("/auth/login", request.url);
+//       login.searchParams.set("redirect", path);
+//       return Response.redirect(login);
+//     }
+//   }
+
+//   return res;
+// }
+
+// export const config = {
+//   matcher: [
+//     "/((?!_next/static|_next/image|favicon.ico|auth/error).*)",
+//   ],
+// };
